@@ -1,3 +1,4 @@
+
 *************************************************************
 /*** Chapter 5: Probability  **/
 *************************************************************
@@ -109,7 +110,6 @@ local w_all: di %3.2f 1- round((comb(10,2)*comb(10,3))/comb(20,5),.01) - round((
 *************************************************************
 display %12.0f comb(84,6)
 
-
 *************************************************************
 *************************************************************
 /*** 5.2 Conditional Probability ***/
@@ -125,9 +125,47 @@ drop if missing(race, gender, age)
 describe, short
 
 tabulate race
+
+count if race=="white"
+local white : di %3.2f round(r(N)/_N,.01)
+count if race=="black"
+local black : di %3.2f round(r(N)/_N,.01)
+
 tabulate gender
+
+count if gender=="f"
+local f = round(r(N)/_N,.01)
+count if gender=="m"
+local m = round(r(N)/_N,.01)
+
 tabulate race gender, column nofreq
 
+count if gender=="f"
+scalar f = r(N)
+count if gender=="f" & race=="black"
+local bf = round(r(N)/scalar(f),.01)
+count if gender=="f" & race=="white"
+local wf = round(r(N)/scalar(f),.01)
+
+tabulate race gender, cell nofreq
+
+scalar tot = r(N)
+count if race=="white" & gender=="m"
+local wm = round(r(N) / scalar(tot),.01)
+count if race=="black" & gender=="f"
+local bf2 = round(r(N) / scalar(tot),.01)
+
+local bf3 = round(r(N)  /scalar(tot),.001)
+count if gender=="f"
+local f= round(r(N) / scalar(tot),.001)
+local jtbf = round(`bf3' / `f',.001)
+
+estpost tabulate race gender
+esttab using mptab.tex, tex replace cell(pct(fmt(2))) unstack  collabels(none) noobs nonumber mtitle("Gender") ///
+  eqlabels("Female" "Male" "Marg prob") varlabels(asian "Asian" black "Black"  ///
+  hispanic "Hispanic" native "Native" other "Other" white "White" ///
+  Total "Marg prob", blist(Total "\hline ")) 
+  
 generate agegroup = .
 	replace agegroup = 1 if age <= 20
 	replace agegroup = 2 if age > 20 & age <= 40
@@ -136,7 +174,9 @@ generate agegroup = .
 
 egen genderrace = group(gender race), label 
 tabulate genderrace agegroup, cell nofreq
+
 count if race=="black" & gender=="f" & agegroup == 4
+local bf4 = round(r(N)/tot, .001)
 
 * joint probability of black female over 60
 count if race == "black" & gender == "f" & agegroup == 4
@@ -229,7 +269,6 @@ scatter cond_ind2 cond_ind1, msymbol(Oh) || function y=x, range(0 .3) ///
 	 title("Marginal independence") legend(off) ///
 	 name(cond_ind, replace)
 graph combine joint_ind cond_ind
-
 clear
 set obs 1000
 * define locals for door options and Monty's choice
@@ -263,10 +302,12 @@ tabulate switch
 *************************************************************
 use names, clear
 describe, short
+local n = _N
 
 merge 1:m surname using FLVoters, keep(3)
 drop _merge
 drop if missing(race)
+local fln = round(_N/10000,.01)*100
 
 replace race = "api" if race == "asian" 
 replace race = "others" if race =="other" | race == "native"
@@ -280,6 +321,7 @@ foreach v of local race_cat  {
 tabulate correct if race == "white"
 
 summarize correct if race == "white"
+local wp = round(r(mean)*100,1)
 
 * black
 tabulate correct if race == "black"
@@ -289,8 +331,11 @@ tabulate correct if race == "hispanic"
 tabulate correct if race == "api"
 
 summarize correct if race=="black"
+local bp = round(r(mean) * 100,1)
 summarize correct if race=="hispanic"
+local hp = round(r(mean) * 100,1)
 summarize correct if race=="api"
+local ap = round(r(mean) * 100,1)
 
 * whites false discovery rate
 tabulate correct if pctwhite == rmax
@@ -311,6 +356,7 @@ use FLCensus, clear
 quietly estpost summarize white black api hispanic others [fweight = totalpop]
 matrix raceprop = e(mean)'
 matrix list raceprop
+
 save FLCensus, replace
 
 use names, clear
@@ -359,9 +405,14 @@ tabulate pre_correct if race == "hispanic"
 tabulate pre_correct if race == "api"
 
 summarize correct if race=="black"
+local bpr = round(`r(mean)',.01)*100
 summarize pre_correct if race=="black" 
+local bpr2 = round(`r(mean)',.01)*100
 summarize pctblack if surname=="WHITE"
+local bpwhite = round(`r(mean)',1)
 summarize preblack if surname=="WHITE"
+local bpwmin = round(`r(min)',.01)*100
+local bpwmax = round(`r(max)',.01)*100
 
 * proportion of blacks among those with surname "White"
 summarize pctblack if surname == "WHITE"
@@ -376,7 +427,6 @@ tabulate pre_correct if preblack == pre_rmax
 tabulate pre_correct if prehispanic == pre_rmax
 * Asian false discovery rate
 tabulate pre_correct if preapi == pre_rmax
-
 
 *************************************************************
 *************************************************************
@@ -394,6 +444,7 @@ tabulate pre_correct if preapi == pre_rmax
 twoway function y=binomialp(1, x, .25), range(0 1) n(2) recast(bar) ///
 	barwidth(.75) xlabel(0 1) xtitle("Probability") ytitle("f(x)") title("Probability mass function") ///
 	ylabel(0(.2)1) name(pmf, replace)
+
 twoway function binomial(1, x, .25), range(0 1) n(2) recast(scatter) msymbol(O) || ///
 	scatteri `=binomial(1,-1,.25)' -1 `=binomial(1,-1,.25)' 0, ///
 	msymbol(none) connect(l) lcolor(black) text(`=binomial(1,-1,.25)' 0 "O", place(0)) || ///
@@ -402,7 +453,7 @@ twoway function binomial(1, x, .25), range(0 1) n(2) recast(scatter) msymbol(O) 
   	scatteri `=binomial(1,1,.25)' 1 `=binomial(1,1,.25)' 2, ///
   	msymbol(none) connect(l) lcolor(black)  legend(off) ///
   	title("Cumulative distribution function") ytitle("F(x)") name(cdf, replace)
-graph combine pmf cdf, name(bern , replace)
+graph combine pmf cdf, name(bern, replace)
 
 clear
 set obs 301
@@ -411,11 +462,12 @@ generate pdf = cond(x>=0 & x<=1,1 / (1-0),0)
 cumul x if x>=0 & x<=1, generate(y)
 replace y = 0 if x<0
 replace y = 1 if x>1
-twoway line pdf x if x>=0 & x<=1, lcolor(black) || line pdf x if x<0, lcolor(black) lpattern(solid) || ///
-	line pdf x if x>1, lcolor(black) lpattern(solid) || ///
-  	scatteri 0 0 0 1, msymbol(oh) color(black) || scatteri 1 0 1 1, msymbol(o) ///
-	legend(off) color(black) title("Probability density function") ///
- 	xtitle("x") ytitle("f(x)") name(pdf, replace)
+twoway line pdf x if x>=0 & x<=1, lcolor(black) || line pdf x if x<0, lcolor(black) lpattern(solid) ///
+	|| line pdf x if x>1, lcolor(black) lpattern(solid) ///
+  	|| scatteri 0 0 0 1, msymbol(oh) color(black) || scatteri 1 0 1 1, msymbol(o) ///
+ 	 legend(off) color(black) title("Probability density function") ///
+ 	 xtitle("x") ytitle("f(x)") name(pdf, replace)
+
 twoway line y x, title("Cumulative distribution function") xtitle("x") ///
  	ytitle("F(x)") xlabel(-1(.5)2) name(cdf, replace)
 graph combine pdf cdf , name(random, replace)
@@ -436,7 +488,8 @@ scalar var_y = r(Var)
 /** 5.3.3 Binomial Distribution **/
 *************************************************************
 twoway function y = binomialp(3,x,.5), range(0 3) recast(bar) n(4) barwidth(.8) ///
-   	ytitle("Density") title("Probability mass function") name(bar, replace)
+   	ytitle("Probability") title("Probability mass function") name(bar, replace)
+
 twoway function binomial(3,x,.5), range(0 3) n(4) recast(scatter) || ///
  	scatteri `=binomial(3,-1,.5)' -1 `=binomial(3,-1,.5)' 0, c(l) msymbol(i) lcolor(black) || ///
  	scatteri `=binomial(3,0,.5)' 0 `=binomial(3,0,.5)' 1, c(l) msymbol(i) lcolor(black) || ///
@@ -444,11 +497,15 @@ twoway function binomial(3,x,.5), range(0 3) n(4) recast(scatter) || ///
  	scatteri `=binomial(3,2,.5)' 2 `=binomial(3,2,.5)' 3, c(l) msymbol(i) lcolor(black) || ///
  	scatteri `=binomial(3,3,.5)' 3 `=binomial(3,3,.5)' 4, c(l) msymbol(i) lcolor(black) || ///
  	scatteri `=binomial(3,-1,.5)' 0 `=binomial(3,0,.5)' 1  `=binomial(3,1,.5)' 2 ///
-	 `=binomial(3,2,.5)' 3, msymbol(Oh) mcolor(black) recast(scatter) legend(off) ///
+	 `=binomial(3,2,.5)' 3, msymbol(Oh) mcolor(black) msize(med) recast(scatter) legend(off) ///
  	title("Cumulative distribution function") ytitle("Probability") name(pr, replace)
 graph combine bar pr
 * PMF when x = 2, n = 3, p = 0.5
 display binomialp(3, 2, .5)
+
+local bin1 = round(binomialp(3,0,.5),.001) 
+local bin2 = round(binomialp(3,1,.5),.001) 
+local binp = round(binomialp(3,0,.5)+binomialp(3,1,.5),.001) 
 
 * CDF when x = 1, n = 3, p = 0.5
 display binomial(3, 1, .5)
@@ -462,22 +519,26 @@ foreach n of numlist 1000 10000 100000 {
 /** 5.3.4 Normal Distribution **/
 *************************************************************
 twoway function normalden(x), range(-7 7) lcolor(black) || /// 
-   	function normalden(x,0,2), range(-7 7) lcolor(red) || ///
-   	function normalden(x,1,.5), range(-7 7) lcolor(blue) xlabel(-6(2)6) ///
+   	function normalden(x,0,2), range(-7 7) lcolor(blue) || ///
+   	function normalden(x,1,.5), range(-7 7) lcolor(gs4)  lpattern(dash) xlabel(-6(2)6) ///
   	title("Probability density function") ytitle("Density") ///
-   	legend(label(1 "mean=0, sd=1") label(2 "mean=0, sd=2") label(3 "mean=1, sd=0.5")) ///
-   	legend(col(1)) name(pdf, replace)
-twoway function normal(x), range(-7 7) lcolor(black) || ///
-   	function normal(x/2), range(-7 7) lcolor(red) || ///
-  	 function normal((x-1)/.5), range(-7 7) lcolor(blue) xlabel(-6(2)6) ///
-  	 title("Cumulative distribution function") ytitle("Probability") ///
-   	legend(label(1 "mean=0, sd=1") label(2 "mean=0, sd=2") label(3 "mean=1, sd=0.5")) ///
-  	legend(col(1)) name(cdf, replace)
+	text(.6 4 "mean = 1" "s.d. = 0.5", color(gs4) size(med)) ///
+	text(.365 -2.6 "mean = 0" "s.d. = 1", size(med)) ///
+	text(.15 -4 "mean = 0" "s.d. = 2", color(blue) size(med)) ///
+	legend(off) name(pdf, replace)
+twoway function normal(x), range(-7 7) lcolor(gs4) || ///
+   	function normal(x/2), range(-7 7) lcolor(blue) || ///
+  	function normal((x-1)/.5), range(-7 7) lcolor(black) lpattern(dash) xlabel(-6(2)6) ///
+  	title("Cumulative distribution function") ytitle("Probability") ///
+	text(.2 3 "mean = 1" "s.d. = 0.5", color(gs4) size(med)) ///
+	text(.75 -1.5 "mean = 0" "s.d. = 1", size(med)) ///
+	text(.15 -4.5 "mean = 0" "s.d. = 2", color(blue) size(med)) ///
+	legend(off) name(cdf, replace)
 graph combine pdf cdf , name(normal, replace)
 
-twoway  function normalden(x), color(red)  xline(0, lstyle(foreground)) range(-1 1) ///
- 	recast(area, ) fint(inten50) || function normalden(x), range(-4 4) color(black) ///
-  	droplines(0)  || function normalden(x), range(-4 -1) fint(inten50) color(blue) recast(area, ) ///
+twoway  function normalden(x), color(blue*.4)  xline(0, lstyle(foreground)) range(-1 1) ///
+ 	recast(area, ) || function normalden(x), range(-4 4) color(black) ///
+  	droplines(0)  || function normalden(x), range(-4 -1) color(gs3) recast(area, ) ///
   	legend(off) ytitle("Density") ylabel(0(.1).5) xlabel(none) ///
 	xtick(-1 0 1, tpos(crossing) tl(*3)) xlabel(-1 "-k" 0 "0" 1 "k") xtitle("") xscale(noline) || ///
    	scatteri  -.01 -1  -.01 1, connect(l) msymbol(i) lcolor(black) name(nden, replace)
@@ -508,13 +569,17 @@ histogram e_std, addplot(function normalden(x), range(-3 3)) ///
 	fcolor(none) color(black) legend(off) name(e1, replace)
 qnorm e_std, xlabel(-3/3) ylabel(-3/3) ///
 	xtitle("Theoretical quantiles") ///
-	ytitle("Sample Quantiles") ///
-	title("Normal Q-Q Plot") msymbol(oh) ///
+	ytitle("Sample quantiles") ///
+	title("Normal Q-Q plot") msymbol(oh) ///
 	name(e2, replace)  
 graph combine e1 e2
+local o08 = round(_b[obama08z],.001)
+local sd08 = round(scalar(sd_e),.01)
 
 summarize obama08 if state == "CA"
+local ca08 = round(r(mean),0)
 summarize obama08z if state == "CA"
+local ca08z = round(r(mean),.01)
 
 summarize obama08z if state == "CA"
 scalar ca08 = r(mean)
@@ -523,8 +588,11 @@ scalar ca12 = _b[obama08z] * ca08
 display ca12
 display 1 - normal((ca08 - ca12) / sd_e)
 
+local capr = (round(1-normal((ca08-ca12)/scalar(sd_e)),.001))*100
 summarize obama08 if state == "TX"
+local tx08 = round(r(mean),0)
 summarize obama08z if state == "TX"
+local tx08z = round(r(mean),.01)
 
 summarize obama08z if state == "TX"
 scalar tx08 = r(mean)
@@ -532,6 +600,8 @@ display tx08
 scalar tx12 = _b[obama08z] * tx08
 display tx12
 display 1 - normal((tx08 - tx12) / sd_e)
+
+local txpr : di %3.2f (round(1-normal((tx08-tx12)/scalar(sd_e)),.01))*100
 
 *************************************************************
 /** 5.3.5 Expectation and Variance **/
@@ -560,12 +630,11 @@ forvalues i = 1/1000 {
 	   quietly drop draws
 }
 
-histogram obamaev, xline(364, lcolor(red)) ///
+histogram obamaev, xline(364, lcolor(blue)) ///
   	xtitle("Obama's Electoral College votes") ///
 	title("Prediction of election outcome") width(10) ///
 	fcolor(none) color(black)  	
   
-summarize obamaev, detail
 tabstat obamaev, statistics(mean median)
 
 * probability of binomial random variable taking greater than n/2 votes
@@ -576,14 +645,12 @@ tabstat pred_ev, statistics(sum)
 generate pb = binomialtail(1000, 501, p)
 generate variance1 = pb * (1 - pb) * ev^2
 summarize variance1
-scalar V1 = r(sum)
-display V1
+display r(sum)
 
 * theoretical standard deviation
-display sqrt(V1)
+display sqrt(r(sum))
 * approximate variance & standard deviation using Monte Carlo draws
 tabstat obamaev, statistics(variance sd)
-
 
 *************************************************************
 *************************************************************
@@ -597,10 +664,11 @@ tabstat obamaev, statistics(variance sd)
 clear
 set obs 5000
 set seed 12345
+gen id = _n
 generate xbin = rbinomial(10, .2)
 generate xsum = sum(xbin)
-generate id = _n
 generate meanbin = xsum / id
+
 generate xunif = runiform()
 generate meanunif = sum(xunif) / id
 
@@ -616,14 +684,12 @@ graph combine bin unif
 *************************************************************
 /** 5.4.2 The Central Limit Theorem **/
 *************************************************************
-/*
 program name 
     command1
     command2
     ...
     commandN
 end
-*/
 
 * define command that calculates z-scores and returns as r-class results
 program zscore, rclass
@@ -660,7 +726,6 @@ histogram zunif, bin(40) addplot(function y=normalden(x,0,1), range(-3 3)) ///
 	ylabel(0(.1).6) xtitle("z-score") title("Uniform(0, 1)") ///
 	legend(off) name(unif2, replace)
 graph combine bin2 unif2, name(sample50, replace) note("n = 50")
-
 
 ***********************************************************	
 /*** Return to main qss directory ***/

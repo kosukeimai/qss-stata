@@ -1,3 +1,4 @@
+
 *************************************************************
 /*** Chapter 4: Prediction ***/
 *************************************************************
@@ -21,6 +22,7 @@ display "I am currently reading `book'."
 
 global book2 "Quantitative Social Science: An Introduction with Stata"
 display "I am currently reading $book2."
+
 
 local math = 5 + 10 / 2
 display `math'
@@ -166,8 +168,7 @@ scatter obama2_7day mccain2_7day daystoelection if daystoelection <= 90, ///
 	xlabel(0(20)80) xscale(reverse) xtitle("Days to the election") ///
 	ytitle("Support for candidate (percentage points)") ///
 	legend(label(1 "Obama") label(2 "McCain") order(1 2))
-	
-	
+
 *************************************************************
 *************************************************************	
 /*** 4.2 Linear Regression ***/
@@ -176,7 +177,8 @@ scatter obama2_7day mccain2_7day daystoelection if daystoelection <= 90, ///
 
 *************************************************************
 /** 4.2.1 Facial Appearance and Election Outcomes **/
-*************************************************************	
+*************************************************************
+
 * load the data
 use face, clear
 * two-party vote share for Democrats and Republicans
@@ -184,7 +186,7 @@ generate dshare = dvotes / (dvotes + rvotes)
 generate rshare = rvotes / (dvotes + rvotes)
 generate diffshare = dshare - rshare
 
-scatter diffshare dcomp if wparty=="R", mcolor(red) || ///
+scatter diffshare dcomp if wparty=="R", mcolor(red) msymbol(T) || ///
 	scatter diffshare dcomp if wparty=="D", mcolor(blue) ///
   	xtitle("Competence score for Democrats") ytitle("Democratic margin in vote share") ///
 	title("Facial competence and vote share") ///
@@ -194,30 +196,34 @@ scatter diffshare dcomp if wparty=="R", mcolor(red) || ///
 /** 4.2.2 Correlation and Scatter Plots **/
 *************************************************************
 correlate dcomp diffshare
+local rho = `=round(r(rho),.1)'
+
 preserve
 	clear
 	set obs 100
+	set seed 123456
 	generate x1 = rnormal()
 	generate y1 = x1/15+rnormal()
 	generate y2 = x1 + (rnormal()/2)
 	generate y3 = -x1 + rnormal()
 	generate y4 = -2.5 + x1^2+ rnormal()/10
+
 	correlate x1 y1
-	scatter y1 x1, xlabel(-3(1)3) ylabel(-3(1)3) ///
-		subtitle("(a) Correlation = `: di %3.2f `=r(rho)''") ///
+	scatter y1 x1 if y1<3 & x1<3, xlabel(-3(1)3) ylabel(-3(1)3) msymbol(Oh) subtitle("(a) Correlation = `: di %3.2f `=r(rho)''") ///
 		name(c1, replace) xtitle("") ytitle("")
+
 	correlate x1 y2
-	scatter y2 x1, xlabel(-3(1)3) ylabel(-3(1)3) ///
-		subtitle("(a) Correlation = `: di %3.2f `=r(rho)''") ///
+	scatter y2 x1 if y2<3 & x1<3, xlabel(-3(1)3) ylabel(-3(1)3) msymbol(Oh) subtitle("(b) Correlation = `: di %3.2f `=r(rho)''") ///
 		name(c2, replace) xtitle("") ytitle("")
+
 	correlate x1 y3
-	scatter y3 x1, xlabel(-3(1)3) ylabel(-3(1)3) ///
-		subtitle("(a) Correlation = `: di %3.2f `=r(rho)''") ///
+	scatter y3 x1 if y3<3 & x1<3, xlabel(-3(1)3) ylabel(-3(1)3) msymbol(Oh) subtitle("(c) Correlation = `: di %3.2f `=r(rho)''") ///
 		name(c3, replace) xtitle("") ytitle("")
+
 	correlate x1 y4
-	scatter y4 x1, xlabel(-3(1)3) ylabel(-3(1)3) ///
-		subtitle("(a) Correlation = `: di %3.2f `=r(rho)''") ///
+	scatter y4 x1 if y4<3 & x1<3, xlabel(-3(1)3) ylabel(-3(1)3) msymbol(Oh) subtitle("(d) Correlation = `: di %3.2f `=r(rho)''") ///
 		name(c4, replace) xtitle("") ytitle("")
+
 	graph combine c1 c2 c3 c4, rows(2)
 restore
 
@@ -226,6 +232,10 @@ restore
 *************************************************************
 * get estimated coefficient
 regress diffshare dcomp
+local cons = `=round(_b[_cons],.0001)'
+local dcomp = `=round(_b[dcomp],.0001)'
+local cons1 = `=round((_b[_cons]),.001)*100'
+local dcomp1 : di %3.1f  `=round(_b[dcomp],.01)*10'
 
 * display estimated coefficients and intercept
 regress diffshare dcomp, coeflegend
@@ -240,30 +250,38 @@ scatter diffshare dcomp, msymbol(Oh) || lfit diffshare dcomp, range(0 1) ///
 	ytitle("Democratic margin in vote share") ///
 	title("Facial competence and vote share") legend(off)
 
-summarize dcomp
+sum dcomp
 scalar comp=r(mean)
-summarize diffshare
+sum diffshare
 scalar share = r(mean)
 scatter diffshare dcomp , msymbol(Oh) mcolor(gs11)|| lfit diffshare dcomp , range(0 1) xline(0 `=scalar(comp)' , lpattern(dash))  ///
  title("Facial competence and vote share") xtitle("Competence scores for Democrats") ytitle("Democratic margin in vote share") ///
-	yline(`=scalar(share)' ,lpattern(dash)) text(-.75 .1 "Intercept") ///
-	text(-.86 .1 "^", size(medlarge)) text(-.89 .1 "α") ///
-	text(-.85 `=scalar(comp)+.08' "Mean of X") text(-.88 .57 "{bf:__}") text(-.97 .57 "X") ///
-	text(`=scalar(share)+.18' .07  "Mean of Y") text(.157 .07 "{bf:__}") text(.068 .07 "Y") ///
-	text(-.225 .8 "Outcome""Y") text(.75 .88 "Predicted value") text(.65 .9 "^", size(medlarge)) ///
-	text(.6 .9 "Y") legend(off) ///
-	text(.12 .97 "Residual""`=ustrunescape("\u03B5\u0302")'") ///
-	play(reg.grec)
+  yline(`=scalar(share)' ,lpattern(dash)) text(-.75 .1 "Intercept") ///
+  text(-.86 .1 "^", size(medlarge)) text(-.89 .1 "α") ///
+  text(-.85 `=scalar(comp)+.08' "Mean of X") text(-.88 .57 "{bf:__}") text(-.97 .57 "X") ///
+  text(`=scalar(share)+.18' .07  "Mean of Y") text(.157 .07 "{bf:__}") text(.068 .07 "Y") ///
+  text(-.225 .8 "Outcome""Y") text(.75 .88 "Predicted value") text(.65 .9 "^", size(medlarge)) ///
+  text(.6 .9 "Y") legend(off) ///
+  text(.12 .97 "Residual""`=ustrunescape("\u03B5\u0302")'") ///
+  play(reg.grec)
+
 display e(rmse)
 
 predict resid, residuals
 generate resid2 = resid^2 
 summarize resid2, meanonly
 display sqrt(r(mean))
+local rmse = `=round(sqrt(`=r(mean)')*100,.1)'
 
 correlate dcomp diffshare
+local cor = `=round(`=r(rho)',.01)'
+local cor = `=round(`=r(rho)',.01)'
 summarize dcomp
+local sddcomp = `=round(`=r(sd)',.01)'
 summarize diffshare
+local sdd = `=round(`=r(sd)',.01)'
+local sddiffshare = `=round(`=r(sd)',.01)'
+local dif = `=round(`cor'*`sdd',.01)*100'
 
 *************************************************************
 /** 4.2.4 Regression towards the Mean **/
@@ -302,9 +320,11 @@ scalar p75 = r(p75)
 
 * bottom quartile
 summarize obama12w if obama08z <= p25
+local bottom = `=round(r(mean)*100,1)'
 
 * top quartile
 summarize obama12w if obama08z >= p75
+local top = `=round(r(mean)*100,1)'
 
 save pres0812.dta, replace
 
@@ -334,6 +354,7 @@ scalar ssr_sum = r(sum)
 
 * coefficient of determination
 display (tss_sum - ssr_sum) / tss_sum
+local r2 = round((scalar(tss_sum) - scalar(ssr_sum)) / scalar(tss_sum),.01)*100 
 
 display e(r2)
 
@@ -351,6 +372,8 @@ rvfplot, yline(0)
 * using created variables
 scatter resid1 fitted, yline(0)
 
+local r2= round(`=e(r2)',.01) // save for later comparison without Palm Beach
+
 summarize resid1
 list county if resid1 == r(max)
 
@@ -359,6 +382,7 @@ regress buchanan00 perot96 if county != "PalmBeach"
 
 * R-squared or coefficient of determination
 display e(r2)
+local r2w= round(`=e(r2)',.01)
 
 * predicted values and residual, excluding Palm Beach
 predict xb_nopb, xb
@@ -382,7 +406,6 @@ scatter buchanan00 perot96, msymbol(Oh) || ///
 	legend(off) name(fit, replace) 
 graph combine resid fit
 
-
 *************************************************************
 *************************************************************
 /*** 4.3 Regression and Causation ***/
@@ -397,16 +420,16 @@ use women, clear
 tabulate reserved, summarize(female)
 
 * drinking water facilities
-summarize water if reserved==1, meanonly
+summarize water if reserved == 1, meanonly
 scalar reserve1 = r(mean)
-summarize water if reserved==0, meanonly
+summarize water if reserved == 0, meanonly
 scalar reserve0 = r(mean)
 display reserve1 - reserve0
 
 * irrigation facilities
-summarize irrigation if reserved==1, meanonly
+summarize irrigation if reserved == 1, meanonly
 scalar irrig1 = r(mean)
-summarize irrigation if reserved==0, meanonly
+summarize irrigation if reserved == 0, meanonly
 scalar irrig0 = r(mean)
 display irrig1 - irrig0
 
@@ -422,6 +445,16 @@ regress primary2008 i.messages
 * create indicator variables
 tabulate messages, generate(message)
 regress primary2008 message2 message3 message4
+
+local control = round(_b[message2],.001)
+local neigh = round(_b[message4],.001)
+local cons = round(_b[_cons],.001)
+local control = round(_b[message2],.001)
+local neigh = round(_b[message4],.001)
+
+local pred1 = `cons'+`control'
+local pred1r = round(`pred1'*100,.1)
+local pred2 = `cons'+`neigh'
 
 preserve
 	* create a data set with unique values of messages
@@ -462,6 +495,7 @@ summarize primary2008 if messages == 2 & primary2004 == 1, meanonly
 scalar votecontrol = r(mean)
 scalar atevoter =  voteneigh - votecontrol
 display atevoter
+local atevoter = `=round(scalar(atevoter)*100,.1)'
 
 * average effect among those who did not vote
 summarize primary2008 if messages == 4 & primary2004 == 0, meanonly
@@ -473,14 +507,19 @@ display atenonvoter
 
 * difference
 display atevoter - atenonvoter
+local atedif = `=round(scalar(atevoter) - scalar(atenonvoter)*100 ,.1)'
 
 regress primary2008 i.primary2004##i.messages if messages == 2 | messages == 4
+
 regress primary2008 i.primary2004 i.messages i.primary2004#i.messages if messages == 2 | messages == 4
 
 generate age = 2008 - yearofbirth
 summarize age 
+local min = `=r(min)'
+local max = `=r(max)'
 
 regress primary2008 c.age##i.messages if messages == 2 | messages == 4
+local coef = round(_b[4.messages#c.age]*100,.02)
 
 * age = 25, 45, 65, 85 in Neighbors group
 margins, at(age=(25(20)85)) dydx(messages)
@@ -496,8 +535,8 @@ marginsplot, recast(line) noci xtitle("Age") ytitle("Predicted turnout rate") //
 * average treatment effect as a function of age
 margins, at(age=(25/85)) dydx(messages) 
 marginsplot, recast(line) noci ylabel(0(.02).1) ///
-	title("") xtitle("Age") ytitle("Estimated average treatment effect") ///
-	name(margins2, replace)
+  title("") xtitle("Age") ytitle("Estimated average treatment effect") ///
+  name(margins2, replace)
  graph combine margins1 margins2
 
 *************************************************************
@@ -539,7 +578,6 @@ quietly regress marginpre margin if party=="tory" & margin > 0
 scalar torypos= _b[_cons]
 * the difference between two intercepts is the estimated effect
 display torypos - toryneg
-
 
 ***********************************************************	
 /*** Return to main qss directory ***/

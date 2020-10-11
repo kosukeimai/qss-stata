@@ -1,15 +1,5 @@
 
 *************************************************************
-/*** Chapter 1: Introduction  **/
-*************************************************************
-
-*************************************************************
-/*** Clear memory and specify working directory ***/
-*************************************************************
-clear all
-cd introduction
-
-*************************************************************
 *************************************************************
 /*** 1.3 Introduction to Stata ***/
 *************************************************************
@@ -40,7 +30,9 @@ input year worldpop
 end
 
 list
+
 describe 
+
 codebook
 
 generate pm = worldpop / 1000
@@ -53,6 +45,7 @@ list pctincrease
 rename pm popmillion
 
 recode year (1950 1960 1970 1980 = 1) (1990 2000 2010 = 0), generate(coldwar)
+
 generate coldwar2 = inlist(year, 1950 1960 1970 1980)
 
 *************************************************************
@@ -76,14 +69,20 @@ lookfor pop
 /** 1.3.4 Describing the Data **/
 *************************************************************
 summarize year worldpop pctincrease
+
 tabulate coldwar
+
 tabulate year coldwar
+
 tabulate coldwar, summarize(popmillion)
 
 *************************************************************
 /** 1.3.5 Data Files **/
 *************************************************************
+cd introduction
+
 use UNpop, clear
+
 import delimited using UNpop.csv, clear
 
 *************************************************************
@@ -91,12 +90,14 @@ import delimited using UNpop.csv, clear
 *************************************************************
 merge 1:1 year using UNsubpop
 
+*************************************************************
+/** 1.3.8 Programming and Learning Tips **/
+*************************************************************
 * run example do-file
 quietly do example.do
-
 
 ***********************************************************	
 /*** Return to main qss directory ***/
 ***********************************************************
-cd ..
+clear all
 graph close _all
