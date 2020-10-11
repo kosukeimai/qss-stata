@@ -334,3 +334,4 @@ scatter dwnom2 dwnom1 if k4dwnom112==1 || scatter dwnom2 dwnom1 if k4dwnom112==2
 ***********************************************************
 cd ..
 graph close _all
+

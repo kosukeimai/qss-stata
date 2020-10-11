@@ -357,3 +357,4 @@ tabstat fullpropbefore fullpropafter, statistics(sd var) by(state) long nototal
 ***********************************************************
 cd ..
 graph close _all
+
