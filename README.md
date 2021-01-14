@@ -13,7 +13,7 @@ This repository contains the data sets and **Stata** scripts for all of the chap
 2. [Causality](CAUSALITY)
 3. [Measurement](MEASUREMENT)
 4. [Prediction](PREDICTION)
-5. [Discovery](DISCOVERY)
-6. [Probability](PROBABILITY)
-7. [Uncertainty](UNCERTAINTY)
+5. [Probability](PROBABILITY)
+6. [Uncertainty](UNCERTAINTY)
+7. [Discovery](DISCOVERY) 
 
