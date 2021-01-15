@@ -12,4 +12,4 @@
 ### Exercises
 1. STAR Project Data (Table 2.6): [STAR.dta] (STAR.dta)
 2. Gay Marriage Study Data (Table 2.7): [gay.dta] (gay.dta)
-3. Leader Assassination Data (Table 2.8) [leaders.dta] (leaders.dta)
+3. Leader Assassination Data (Table 2.8): [leaders.dta] (leaders.dta)
