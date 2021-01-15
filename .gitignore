@@ -1,0 +1,8 @@
+.DS_Store
+
+# Stata output files
+*.gph
+*.log
+*.smcl
+*.stpr
+*.stsem
