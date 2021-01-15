@@ -27,31 +27,11 @@ modes firstname
 modes firstname, nmodes(5)
 
 tab1 sex race call
-
 tabulate race call
 
-count if race == "black" 
-local b = r(N)
-count if race == "black" & call == 0
-local b0 = r(N)
-count if race == "black" & call == 1
-local b1 = r(N)
 
 * overall callback rate: total callbacks divided by the sample size
 tabulate race call, row
-
-count if race == "black" 
-scalar b = r(N)
-count if race == "black" & call == 1
-scalar b1 = r(N)
-count if race == "white" 
-scalar w = r(N)
-count if race == "white" & call == 1
-scalar w1 = r(N)
-
-local bw = round((w1 / w - b1 / b),.001)
-local bwp = round((w1 / w - b1 / b),.001) * 100
-
 tabulate race, summarize(call)
 
 *************************************************************
@@ -115,7 +95,6 @@ label values type typecat
 
 * number of observations for each level
 tabulate type
-
 tabulate type, nolabel 
 
 egen type2 = group(race sex), label
@@ -140,14 +119,14 @@ summarize call
 
 * subset blacks only
 preserve
-keep if race == "black"
-summarize call
-tabulate race
+	keep if race == "black"
+	summarize call
+	tabulate race
 restore
 
 preserve
-collapse call, by(sex race)
-list		
+	collapse call, by(sex race)
+	list		
 restore
 
 *************************************************************
@@ -210,11 +189,6 @@ generate minwagebefore = cond(wagebefore < 5.05, 1, 0)
 generate minwageafter = cond(wageafter < 5.05, 1, 0)
 tabstat minwagebefore minwageafter, by(state) statistics(mean)
 
-summarize minwagebefore if state == "NJ" 
- local njb = round(r(mean) * 100,1)
-summarize minwageafter if state == "NJ" 
- local nja = ceil(r(mean) * 100)
-
 * create a variable for proportion of full-time employees in NJ and PA
 generate fullpropafter = fullafter / (fullafter + partafter) 
 
@@ -260,34 +234,12 @@ scalar fullpropbeforeNJ = r(mean)
 * mean difference between before and after the minimum wage increase
 display fullpropafterNJ - fullpropbeforeNJ
 
-summarize fullpropbefore if state == "PA"
-scalar pabef = r(mean)
-summarize fullpropafter if state == "PA"
-scalar paaft = r(mean)
-summarize fullpropbefore if state == "NJ"
-scalar njbef = r(mean)
-summarize fullpropafter if state == "NJ"
-scalar njaft = r(mean)
-twoway scatteri `=pabef' 1  `=paaft' 2, msymb(Oh Oh) mcolor(black black) msize(medlarge) || ///
-	scatteri `=njbef' 1 `=njaft' 2, mcolor(black black) msym(O O) msize(medlarge) || ///
-	scatteri `=njbef+(paaft-pabef)' 2, msymb(T) mcolor(blue) msize(medlarge) || ///
-	scatteri `=njbef' 1 `=njbef+(paaft-pabef)' 2, msymbol(none) c(line) lpattern(dash) lcolor(blue) || ///
-	scatteri `=pabef' 1 `=paaft' 2, c(line) msymbol(none) lcolor(black) || scatteri `=njbef' 1 `=njaft' 2 , c(line) msymbol(none) lcolor(black) ///
-	ylabel(0.24(.02).36) legend(off) ytitle("Average proportion of full-time employees") ///
-	text(.32 1 "Control group""(Pennsylvania)", place(3) color(black)) text(.33 2 "Treatment group""(New Jersey)", place(9)) ///
-	text(.25 2 "Counterfactual""(New Jersey)", place(9) color(blue)) xtitle("") xscale(range(.8 2.4)) /// 
-	xlabel(1 "Before" 2 "After") text(.29 2.13 "Average""causal effect""estimate", place(3)) ///
-	text( .29 2.1  "`=ustrunescape("\u23AB")'" "`=ustrunescape("\u23AA")'" "`=ustrunescape("\u23AC")'" "`=ustrunescape("\u23AA")'" 	"`=ustrunescape("\u23AD")'", size(vhuge) color(navy*.7))
 * full-time employment proportion in the previous period for PA
 summarize fullpropbefore if state == "PA"
 scalar fullpropbeforePA = r(mean)
 
 * differences in differences using mean difference between before and after, by state
 display (fullpropafterNJ - fullpropbeforeNJ) -  (fullpropafterPA - fullpropbeforePA)
-
-summarize wagebefore, detail
-local med : di %3.2f `= r(p50)'
-local mean = round(r(mean) ,.01)
 
 *************************************************************
 *************************************************************
@@ -321,20 +273,10 @@ display (medafterNJ- medbeforeNJ) - (medafterPA - medbeforePA)
 
 * summary shows quartiles as well as minimum, maximum, and mean
 summarize wagebefore if state == "NJ", detail
-local befmin = r(min)
-local befmax = r(max)
-local bef75 = round(r(p75),.01)
 summarize wageafter if state == "NJ", detail
 
 * interquartile range 
 tabstat wagebefore wageafter if state == "NJ", statistics(iqr) columns(statistics)
-
-tabstat wagebefore wageafter if state == "NJ", statistics(iqr) columns(statistics) save
-matrix iqr = r(StatTotal)
-scalar iqr1 = iqr[1,1]
-scalar iqr2 = iqr[1,2]
-local iqr1 = round(scalar(iqr1),.01)
-local iqr2 = round(scalar(iqr2),.01)
 
 centile wagebefore if state == "NJ", centile(0(10)100)
 centile wageafter if state == "NJ", centile(0(10)100)
@@ -346,7 +288,6 @@ egen sqNJ = mean((fullpropafter - fullpropbefore)^2) if state == "NJ"
 generate rmsNJ = sqrt(sqNJ)
 
 egen meanNJ = mean(fullpropafter - fullpropbefore) if state == "NJ"
-
 summarize rmsNJ meanNJ
 
 * standard deviation and variance

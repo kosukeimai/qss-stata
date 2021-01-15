@@ -23,8 +23,6 @@ list family - castellan in 1/5
 
 egen marriage = rowtotal(acciaiuol - tornabuon)
 list family marriage
-levelsof marriage if family == "MEDICI", local(m)
-local m = `m'
 
 *************************************************************
 /** 7.1.2 Undirected Graph and Centrality Measures **/
@@ -41,17 +39,12 @@ list family _degree
 
 nwcloseness, unconnected(16) generate(close_out far_out near_out)
 list family near_out close_out far_out
-levelsof near_out if family == "MEDICI", local(m)
-local ave = 1 / (`m' * 15)
 
 generate avg_edge = 1 / (near_out * 15)
 list family avg_edge
   
 nwbetween, generate(between) nosym
 list family between
-local node = comb(15,2)
-levelsof between if family=="MEDICI", local(mb)
-local mb1 = round(`mb'/`=comb(15,2)',.01) * 100
 
 nwplot marriage, size(near_out) ///
 	label(family) title("Closeness (nonnormalized)", margin(b = 4)) ///
@@ -176,8 +169,8 @@ use `twitter', clear
 pagerank twitter
 
 nwplot twitter, size(_pr) arrowfactor(0)  ///
-color(party, colorpalette(blue white red)) ///
-lineopt(lcolor(gs12)) legend(off)
+	color(party, colorpalette(blue white red)) ///
+	lineopt(lcolor(gs12)) legend(off)
 
 *************************************************************
 /** 7.2 Spatial Data **/
@@ -190,7 +183,8 @@ lineopt(lcolor(gs12)) legend(off)
 *************************************************************
 /** 7.2.2 Spatial Data in Stata **/
 *************************************************************
-shp2dta using cb_2017_us_state_500k, database(usdb) coordinates(uscoord) genid(id) replace
+shp2dta using cb_2017_us_state_500k, database(usdb) ///
+	coordinates(uscoord) genid(id) replace
 
 use usdb, clear
 drop if inlist(NAME, "Guam", "Alaska", "Hawaii", "Puerto Rico", "American Samoa", ///
@@ -224,10 +218,6 @@ spmap using uscoord if STUSPS == "CA", id(id) ///
 use uscoord, clear
 count if _X ~= . & _Y ~= .
 list in 1/5    
-count if _X~=. & _Y~=.
-local coord = `=r(N)'
-
-palette color blue blue*.5
 
 *************************************************************
 /** 7.2.3 United States Presidential Elections **/
@@ -286,6 +276,7 @@ foreach i of local y {
 	local count = `count' + 1
  }
 
+ /*
 winexec "C:\Program Files\ffmpeg\bin\ffmpeg.exe" -i graphs/wm%d.png -b:v 512k graphs/wm.mpg
 sleep 10000
 winexec "C:\Program Files\ffmpeg\bin\ffmpeg.exe" -r 1 -i graphs/wm.mpg -t 43 -r 1 graphs/wm.gif
@@ -297,6 +288,7 @@ shell /usr/local/bin/ffmpeg -r 1 -i graphs/wm.mpg -t 43 -r 1 -y graphs/wm.gif
 * get list of graphs using Unix
 local input: dir "" files "*.png"
 shell convert -delay 150 -loop 0 `macval(input)' wm.gif
+*/
 
 *************************************************************
 /** 7.3 Textual Data **/
@@ -336,6 +328,7 @@ txttool fed, stopwords("stopwordexample.txt") stem replace
 * remove numbers
 replace fed = ustrregexra(fed, "[0-9]+", "")
 save fedpapers, replace
+
 * truncated output of essay no. 10
 list fed if fedno == 10
 
@@ -481,9 +474,9 @@ foreach v of local newlist {
 tabstat tfm*, by(author) col(stat) long nototal
 
 regress author tfm_upon tfm_there tfm_consequently tfm_whilst
-local whilst = abs(round(_b[tfm_whilst],.01))
 
 predict authpred, xb
+
 * subset to papers authored by Hamilton or Madison
 summarize authpred if inlist(author, -1, 1)
 * standard deviation

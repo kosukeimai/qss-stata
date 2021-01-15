@@ -50,13 +50,11 @@ program sate_sim, rclass
 	* estimation error for SATE
 	    return scalar esterr = mu1 - mu0 - sate
 end
+
 cd uncertainty
 simulate esterror = r(esterr) difmeans=r(difmeans), saving(sate, replace) reps(5000) nodots: sate_sim      
 * estimation error for SATE
 summarize esterr
- local dm_max =round(r(max),.001)
- local dm_min =round(r(min),.001)
- local ee = round(r(mean),.001)
 
 * PATE simulation
 program pate_sim, rclass
@@ -96,17 +94,10 @@ histogram difmeans, xline(`x')  ///
 	fcolor(none) color(black) width(.1) 
 
 summarize difmeans
-summarize difmeans
-local sd = round(`=r(sd)', .001)
 
 generate rmse1 = (difmeans - sate)^2
 summarize rmse1, meanonly
 display sqrt(r(mean))
-summarize rmse1
-local rmse = round(sqrt(`=r(mean)'), .001)
-
-local o_se_r = round(sqrt(0.6 * (1 - 0.6) / 1000),.001)
-local o_se_rp = round(sqrt(0.6 * (1 - 0.6) / 1000)*100,.1)
 
 clear
 * PATE with standard errors	
@@ -136,19 +127,6 @@ summarize difmeans se
 *************************************************************
 /** 6.1.3 Confidence Intervals **/
 *************************************************************
-twoway function normalden(x) ,  xline(0, lstyle(foreground)) range(`=invnormal(.025)' `=invnormal(.975)') recast(area) ///
-   ytitle("Density") ylabel(0(.1).5) color(red%50) fint(inten50) || ///
-   function normalden(x) , color(black) range(-4 4) xlabel(none) legend(off) ///
-   xtick(`=invnormal(.025)' 0 `=invnormal(.975)', tpos(crossing) tl(*3)) xlabel(`=invnormal(.025)' "-z{subscript: {&alpha}/2}" 0 "0" `=invnormal(.975)' "z{subscript: {&alpha}/2}") xtitle("") xscale(noline) || ///
-   scatteri  -.01 `=invnormal(.025)'  -.01 `=invnormal(.975)' , connect(l) msymbol(i) lcolor(black)
-   
-
-local p995r = round(invnormal(.995),.01) 
-local p975r = round(invnormal(.975),.01) 
-local p95r = round(invnormal(.95),.01) 
-
-local ose = round(sqrt(0.6 * (1 - 0.6) / 1000), .01)
-
 scalar xbar = .6
 scalar se_bar  = sqrt(.6 * (1 - .6) / 1000)
 * 99% confidence intervals
@@ -196,8 +174,6 @@ summarize cires
 * 1000 observations
 simulate cires = r(ciresults) , reps(5000) nodots: confint, obs(1000) pr(.6) alpha(.05) 
 summarize cires
-
-local o =round(1 / .03^2,1)
 
 *************************************************************
 /** 6.1.4 Margin of Error and Sample Size Calculation in Polls **/
@@ -303,50 +279,16 @@ display ate_se
 scalar ate_lo = ate_est - invnormal(1 - .05 / 2) * ate_se
 scalar ate_hi = ate_est + invnormal(1 - .05 / 2) * ate_se
 display ate_lo, ate_hi
-local ateest : di %3.2f round(scalar(ate_est),.001)
-local atese : di %3.2f round(scalar(ate_se),.001)
-local ate_lo : di %3.2f round(scalar(ate_lo),.001)
-local ate_hi : di %3.2f round(scalar(ate_hi),.001)
 
 *************************************************************
 /** 6.1.6 Analysis based on Student’s t-Distribution **/
 *************************************************************
-twoway function normalden(x), range(-6 6)  || ///
- 	function tden(2, x), range(-6 6) || ///
- 	function tden(10, x), lpattern(dash) lcolor(blue)  range(-6 6)  || ///
-  	function tden(50, x), range(-6 6)  ///
-  	legend(label(1 "normal") label(2 "df = 2") label(3 "df = 10") label(4 "df = 50")) ///
-  	ytitle("Density") xtitle("") xlabel(-6(2)6) name(den, replace)
-preserve
-	clear 
- 	set obs 99
- 	gen y = _n/100
-	gen q = invnormal(y)
- 	gen t2 = invt(2, y)
- 	gen t10 = invt(10,y)
- 	gen t50 = invt(50,y)
- 	twoway line q q ,  || ///
-   		line t2 q if q>=-2.1 & q<=2.1, yscale(range(-4 4)) ylabel(-4(2)4)  ///
-   		|| line t10 q , lpattern(dash) lcolor(blue) || line t50 q ,  ///
-  		 xtitle("Quantile of the standard normal distribution") ///
-   		ytitle("Quantile of the t-distribution") ///
-   		legend(label(1 "normal") label(2 "df = 2") label(3 "df = 10") label(4 "df = 50")) name(quant, replace)
- restore
- graph combine den quant
-  
-local crit_t = round(invt(49,.975),.01)
-local crit_n = round(invnorm(.975),.01)
-
 * 95% confidence intervals, by classtype
 ttest g4reading if classtype == 1 | classtype == 2 , by(classtype) unequal
 
 * 95% CI based on the central limit theorem
 display cilo_small, cihi_small  // small class size
 display cilo_reg, cihi_reg // regular class size
-local df = round(r(df_t),.1)
-
-local mf = comb(8,4)
-local imf = round(1 / comb(8,4),.01)
 
 *************************************************************
 *************************************************************
@@ -357,21 +299,6 @@ local imf = round(1 / comb(8,4),.01)
 *************************************************************
 /** 6.2.1 Tea-Tasting Experiment **/
 *************************************************************
-clear
-set obs 5
-input guess pr1
-	0	1
-	2	16
-	4	36
-	6	16
-	8	1
-*end
-generate pr = pr1 / 70
-twoway bar pr guess , ytitle("Probability") xtitle("Number of correct guesses") ///
-  ylabel(0(.1).6)  
-local c3 = comb(4,1) * comb(4,3)
-local c4 = comb(4,2) * comb(4,2)
-
 clear
 set obs 5
 * use number of correctly classified cups as identifier
@@ -427,11 +354,6 @@ generate dif = correct / 1000 - trueprob
 list guess correctpct dif
 erase sim.dta
 
-local prg = round(1/70,.001)
-local pval = round((1+16)/70 , .001)
-local prg2 = round(2/70,.001)
-local pval2 = round(2*(1+16)/70 , .001)
-
 *************************************************************
 /** 6.2.2 The General Framework **/
 *************************************************************
@@ -446,11 +368,6 @@ tabulate treat guess6, exact
 *************************************************************
 /** 6.2.3 One-Sample Tests **/
 *************************************************************
-twoway function normalden(x, .5 , .01567098), range(.46 .54) xline(.54, lcolor(black)) ///
-   xline(.5, lcolor(black) lpattern(dot)) xline(.46, lcolor(black) lpattern(dash)) ///
-   text(17 .57 "Observed value") ytitle("Density") xtitle("Sample proportion") || ///
-   function normalden(x, .5 , .01567098), range(.4 .46) color(red) recast(area) || ///
-   function normalden(x, .5 , .01567098), range(.54 .6) color(red) recast(area) legend(off) 
 scalar xbar = 550 / 1018
 * standard deviation of sampling distribution
 scalar se = sqrt(.5 * .5 / 1018)
@@ -474,7 +391,6 @@ display  1 - normal(zscore)
 
 * two-sided p-value
 display (1 - normal(zscore)) * 2   
-
 
 * 99% confidence interval contains 0.5
 display (xbar - invnormal(.995) * se), (xbar + invnormal(.995) * se)
@@ -503,7 +419,7 @@ display normal(-abs(ate_est) / ate_se)
 display 2 * normal(-abs(ate_est) / ate_se)
 
 * testing the null of zero average treatment effect
-ttest g4reading if classtype==1 | classtype==2, by(classtype) unequal
+ttest g4reading if classtype == 1 | classtype == 2, by(classtype) unequal
 
 use resume, clear
 prtest call, by(race)
@@ -537,51 +453,10 @@ display normal(-abs(zstat))
 *************************************************************
 /** 6.2.5 Pitfalls of Hypothesis Testing **/
 *************************************************************
-use onetailed, clear
-generate tail = 1
-generate pval = 1-normal(z)
-tempfile one
-save `one'
-use twotailed, clear
-generate tail = 2
-generate pval = 2 * (1 - normal(abs(z)))
-
-append using `one'
-
-histogram pval, bin(20) fcolor(none) color(black) addplot(, xline(.05)) ///
-ylabel(0(2)12) xtitle("p-value") name(hyp, replace)
 
 *************************************************************
 /** 6.2.6 Power Analysis **/
 *************************************************************
-clear
-scalar n = 250
-scalar p = .48
-scalar se = sqrt(p* (1 - p) / n)
-scalar p0 = .5
-scalar se0 = sqrt(p0* (1 - p0) / n)
- 
-twoway function normalden(x, p, se) , range(.35 .65) lcolor(blue) || ///
- 	function normalden(x, p0, se0), range(.35 .65) lcolor(black) ///
-  	ytitle("Density") xtitle("Proportion, p*") ylabel(0(2)12) legend(off) || ///
-  	function normalden(x, p, se), color(blue%50)  range(.35 `=p0-invnormal(.975)*se0') ///
-  	recast(area, ) fint(inten50) xlabel(.35(.05).65) || ///
-  	function normalden(x, p, se), color(blue%50)  range(`=p0+invnormal(.975)*se0' .65) ///
-  	recast(area, ) fint(inten50) xline(`=p0-invnormal(.975)*se0' `=p0+invnormal(.975)*se0', ///
-  	lpattern(dash) lcolor(black)) xline(`=scalar(p0)' , lcolor(black) lpattern(dot) lwidth(medthick)) ///
-  	name(power1, replace)
-twoway function normal((.5 -invnormal(.975)*sqrt(.5*(1-.5)/250)-x)/sqrt(x*(1-x)/250)) ///
- 	+1-normal((.5 +invnormal(.975)*sqrt(.5*(1-.5)/250)-x)/sqrt(x*(1-x)/250)) , range(.35 .65) lcolor(black) || ///
-	 function normal((.5 -invnormal(.975)*sqrt(.5*(1-.5)/500)-x)/sqrt(x*(1-x)/500)) ///
-	 +1-normal((.5 +invnormal(.975)*sqrt(.5*(1-.5)/500)-x)/sqrt(x*(1-x)/500)) , range(.35 .65) lcolor(blue) || ///
- 	function normal((.5 -invnormal(.975)*sqrt(.5*(1-.5)/1000)-x)/sqrt(x*(1-x)/1000)) ///
- 	+1-normal((.5 +invnormal(.975)*sqrt(.5*(1-.5)/1000)-x)/sqrt(x*(1-x)/1000)) , range(.35 .65) lcolor(red) lpattern(dash) ///
- 	legend(pos(5) ring(0) cols(1) symxsize(6) keygap(1) label(1 "n=250") label(2 "n=500") label(3 "n=1000")) ////
- 	xtitle("Proportion, p*") ytitle("Power") ///
- 	yline(.05, lpattern(dash) lcolor(black)) xline(.5, lpattern(dot) lwidth(medthick) lcolor(black)) ///
- 	xlabel(.35(.05).65) name(power2, replace) 
-graph combine power1 power2
-
 * set the parameters
 scalar n = 250
 scalar pstar = .48 // data-generating process
@@ -590,12 +465,11 @@ scalar pnull = .5 // null value
 * standard errors under the hypothetical data-generating process
 scalar sestar = sqrt(pstar * (1 - pstar) / n)
 * standard error under the null
-scalar se = sqrt(pnull *(1 - pnull) / n)
+scalar se_null = sqrt(pnull * (1 - pnull) / n)
 * power
-display normal(((pnull - invnormal(.975) * se) - pstar) / sestar) + ///
-	    (1 - normal(((pnull + invnormal(.975) * se) - pstar) / sestar))
-local pow = round(normal(((pnull - invnormal(.975) * se) - pstar) / sestar) + (1 - normal(((pnull + invnormal(.975) * se) - pstar) / sestar)),.01) * 100
-
+display normal(((pnull - invnormal(.975) * se_null) - pstar) / sestar) + ///
+	(1 - normal(((pnull + invnormal(.975) * se_null) - pstar) / sestar))
+	
 * specify the parameters
 scalar n1 = 500
 scalar n0 = 500
@@ -617,13 +491,10 @@ power twoprop 0.05 .1, n(1000)
 power twoprop 0.05 .1, p(.9)
 
 power onemean 0 .25, n(100) sd(1)
-local pow1 = round(`=r(power)',.01) * 100
 
 power onemean 0 .25, power(.9) sd(1)
-local pow2 = `=r(N)'
 
 power twomeans 0 .25, power(.9) onesided
-local pow3 = `=r(N1)'
 
 *************************************************************
 *************************************************************
@@ -647,7 +518,6 @@ regress fullpropafter nj fullpropbefore wagebefore ibn.chainnum, nocons
 estimates store minwage_noint
 matrix list e(b)
 matrix list e(V)
-local nj = round(_b[nj] * 100,.1)
 
 regress fullpropafter nj fullpropbefore wagebefore i.chainnum
 estimates store minwage_int  
@@ -673,25 +543,11 @@ display xb_int
 *************************************************************
 use women, clear
 regress water reserved
-local bres : di %4.3f round(_b[reserved],.001)
-local seres = round(_se[reserved],.001)
-local tres = round(_b[reserved] / _se[reserved],.001)
-local df = e(df_r)
-local n = e(N)
-local p = round(2 * ttail(`df',_b[reserved] / _se[reserved]),.001)
-local bres2 = round(_b[reserved],.01)
-local lowci = round(_b[reserved] - _se[reserved]*invt(e(df_r),.975),.01)
-local upci = round(_b[reserved] + _se[reserved]*invt(e(df_r),.975),.01)
 
 estimates restore minwage_noint
 * retrieve coefficient and standard error for nj variable
 display _b[nj]
 display _se[nj]
-local bnj = round(_b[nj],.001) * 100
-local senj = round(_se[nj],.001) * 100
-local df = e(df_r)
-local n = e(N)
-local par = e(df_m)
 
 *************************************************************
 /** 6.3.5 Inference about Predictions **/
@@ -723,20 +579,20 @@ combomarginsplot torylow toryhi, xline(0, lpattern(dash)) ///
  	xtitle("Margin of victory") ytitle("Log net wealth") ///
  	lplot1(msize(tiny)) lci1opts(color(gs12))
 
-quietly regress lnnet margin if party=="tory" & margin < 0
+quietly regress lnnet margin if party == "tory" & margin < 0
 quietly estadd margins, at(margin = 0)
 matrix list e(margins_se)
 matrix list e(margins_b)
 
-* save standard error and point estimates (negative margin)
+* save standard error and point estimate (negative margin)
 scalar se0 = e(margins_se)[1,1]
 scalar fit0 =  e(margins_b)[1,1]
 
-quietly regress lnnet margin if party=="tory" & margin > 0
+quietly regress lnnet margin if party == "tory" & margin > 0
 quietly estadd margins , at(margin = 0)
 
-* save standard error and point estimates (positive margin)
-scalar se1 =  e(margins_se)[1,1]
+* save standard error and point estimate (positive margin)
+scalar se1 = e(margins_se)[1,1]
 scalar fit1 = e(margins_b)[1,1]
 
 * standard error prediction
