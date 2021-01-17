@@ -6,7 +6,7 @@
 
 ## Data sets
 ### Main text
-1. World Population Estimates Data (Table 1.1): [UNpop.csv](UNpop.csv),[UNpop.dta](UNpop.dta) 
+1. World Population Estimates Data (Table 1.1): [UNpop.csv](UNpop.csv), [UNpop.dta](UNpop.dta) 
 2. World Population Estimates by Region Data: [UNsubpop.dta](UNsubpop.dta) 
 
 ### Exercises
